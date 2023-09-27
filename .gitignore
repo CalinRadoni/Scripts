@@ -1,0 +1,5 @@
+# the python virtual environment
+/venv
+
+# notes directory
+/notes
