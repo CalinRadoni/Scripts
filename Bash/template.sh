@@ -2,9 +2,9 @@
 #
 # Template script that handle options and arguments
 #
-# Version: 1.0.0
+# Version: 1.0.1
 # Copyright (C) 2023 Calin Radoni
-# License GNU GPLv3 (https://choosealicense.com/licenses/gpl-3.0/)
+# License MIT (https://opensource.org/license/mit/)
 #
 # There is a post related to this script at:
 # https://calinradoni.github.io/pages/230123-bash-scripting.html
