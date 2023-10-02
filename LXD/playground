@@ -2,7 +2,7 @@
 #
 # Build / Show / Destroy a LXD Playground
 #
-# Version: 0.6.5
+# Version: 0.6.6
 # Copyright (C) 2023 Calin Radoni
 # License MIT (https://opensource.org/license/mit/)
 
@@ -15,7 +15,7 @@ proj='kPlay'
 netPrefix='10.70.10'
 
 declare -i srvcnt=1
-declare -i wrkcnt=0
+declare -i wrkcnt=2
 
 # the user for SSH access and remote management
 adminuser='calin'
@@ -99,10 +99,13 @@ add_common_devices() {
 
 # Set the common cloud-init configuration for all containers
 set_common_config() {
+  # the br_netfilter kernel module is required
   lxc profile set default --project "$proj" linux.kernel_modules=br_netfilter
 
+  # these containers must be privileged
   lxc profile set default --project "$proj" security.privileged true
 
+  # extended permission and /dev/kmsg are also required
 cat << EOF | lxc profile set default --project "$proj" raw.lxc -
 lxc.apparmor.profile = unconfined
 lxc.cgroup.devices.allow = a
@@ -111,6 +114,7 @@ lxc.mount.auto = cgroup:mixed proc:rw sys:mixed
 lxc.mount.entry = /dev/kmsg dev/kmsg none defaults,bind,create=file
 EOF
 
+  # basic cloud-init config to set the admin user and SSH acces with public key
   cat << EOF | lxc profile set default --project "$proj" cloud-init.user-data -
 #cloud-config
 package_upgrade: true
@@ -129,10 +133,16 @@ users:
 EOF
 }
 
-# Create a system container and its cloud-init settings
+# Create and launch a system container
+# Create a `cloud-init.network-config` profile then launch a `ubuntu-minimal` image with that profile attached.
+# Globals:
+#   - proj is the project name
+#   - netPrefix the 24 MSB of the IPv4, example: 192.168.5
 # Arguments:
-# - name
-# - LSB of IPv4 address
+#   - name of the container
+#   - LSB of IPv4 address
+# Example:
+#   create_container server5 12
 create_container() {
   [[ $# -eq 2 ]] || { printf 'This function needs two arguments !\n'; return 1; }
 
@@ -172,6 +182,7 @@ EOF
   return 0
 }
 
+# Wait for cloud-init to finish
 wait_for_cloud_init() {
   [[ $# -eq 1 ]] || { printf 'This function needs an argument !\n'; return 1; }
   [[ -n "$1" ]] || { printf 'The argument is null !\n'; return 2; }
@@ -181,6 +192,7 @@ wait_for_cloud_init() {
     cloud-init status --wait
 }
 
+# Remove old keys from `known_hosts` file
 remove_old_host_keys() {
   printf '\nRemove the keys of previous hosts:\n\n'
   for key in "${!sshCfg[@]}"; do
@@ -188,8 +200,9 @@ remove_old_host_keys() {
   done
 }
 
+# Show proposed SSH config
 show_SSH_config() {
-  printf '\nSet your ~/.ssh/config file:\n\n'
+  printf '\nYou may set your ~/.ssh/config file like:\n\n'
 
   for key in "${!sshCfg[@]}"; do
     printf 'Host %s\n' "$key"
@@ -203,6 +216,12 @@ show_SSH_config() {
   printf '\n'
 }
 
+# Build the playground
+# Globals:
+#   - proj is the project name
+#   - srvName is the prefix for server names
+#   - wrkName is the prefix for worker names
+# Arguments: none
 build_playground() {
   if lxc project list -f csv | cut -d, -f1 | grep -q "$proj"; then
     exit_with_message 1 "Project $proj already exists !"
@@ -237,6 +256,10 @@ build_playground() {
   done
 }
 
+# Show information about the playground
+# Globals:
+#   - proj is the project name
+# Arguments: none
 show_playground() {
   if ! lxc project list -f csv | cut -d, -f1 | grep -q "$proj"; then
     exit_with_message 1 "Project $proj not found !"
@@ -246,8 +269,15 @@ show_playground() {
   lxc profile list --project "$proj"
   printf 'Containers in %s:\n' "$proj"
   lxc list --project "$proj"
+  printf 'The networks:\n'
+  lxc network list
 }
 
+# Destroy the playground
+# Globals:
+#   - proj is the project name
+#   - netName is the network name
+# Arguments: none
 destroy_playground() {
   declare -a items
   declare -a profiles
