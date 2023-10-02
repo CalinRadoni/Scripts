@@ -2,7 +2,7 @@
 #
 # Build / Show / Destroy a LXD Playground
 #
-# Version: 0.6.8
+# Version: 0.6.9
 # Copyright (C) 2023 Calin Radoni
 # License MIT (https://opensource.org/license/mit/)
 
@@ -225,6 +225,10 @@ show_SSH_config() {
 build_playground() {
   if lxc project list -f csv | cut -d, -f1 | grep -q "$proj"; then
     exit_with_message 1 "Project $proj already exists !"
+  fi
+
+  if ! echo "$pubkey" | ssh-keygen -l -f - >/dev/null 2>&1; then
+    exit_with_message 2 "Provide a valid public key !"
   fi
 
   create_the_project
