@@ -2,7 +2,7 @@
 #
 # Build / Show / Destroy a LXD Playground
 #
-# Version: 0.6.7
+# Version: 0.6.8
 # Copyright (C) 2023 Calin Radoni
 # License MIT (https://opensource.org/license/mit/)
 
@@ -15,7 +15,7 @@ proj='kPlay'
 netPrefix='10.70.10'
 
 declare -i srvcnt=1
-declare -i wrkcnt=2
+declare -i wrkcnt=0
 
 # the user for SSH access and remote management
 adminuser='calin'
@@ -348,7 +348,7 @@ parse_options() {
 
 parse_options "$@"
 
-if ! command -v lxc; then
+if ! command -v lxc >/dev/null 2>&1; then
   exit_with_message 1 'lxc command not found!'
 fi
 
