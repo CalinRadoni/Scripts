@@ -2,12 +2,17 @@
 #
 # Build / Show / Destroy a LXD Playground
 #
-# Version: 0.6.9
+# Version: 0.6.10
 # Copyright (C) 2023 Calin Radoni
 # License MIT (https://opensource.org/license/mit/)
-
-# Note: this script is intended to do its job. It is not error-proof and could be improved with arguments and
+#
+# Note 1: this script is intended to do its job. It is not error-proof and could be improved with arguments and
 # error checking but it may complicate usage, understanding and debugging !
+#
+# Note 2: for a short explanation see https://calinradoni.github.io/pages/230918-lxd-playground-for-k8s.html .
+#
+# Note 3: a playground created with this script can be used for tests with k0s and K3s.
+# See https://calinradoni.github.io/pages/230926-lxd-k0s-k3s.html) for information.
 
 # --- start of user configuration options
 
