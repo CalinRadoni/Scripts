@@ -4,6 +4,7 @@ This repository contains scripts that I consider useful and worth keeping around
 
 ## Highlights
 
+- `Ansible` directory contains its own README
 - `Bash/template.sh` is a template for bash scripts.
 - `LXD/playground` builds, shows and destroys a [LXD Playground for Kubernetes](https://calinradoni.github.io/pages/230918-lxd-playground-for-k8s.html). The linked article contains the basic steps. The script is the practical, scripted, implementation.
 
