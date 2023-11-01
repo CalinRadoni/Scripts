@@ -1,0 +1,79 @@
+---
+# Install and configure vim and set it as the default editor
+#
+# Version: 1.0.0
+# Copyright (C) 2023 Calin Radoni
+# License MIT (https://opensource.org/license/mit/)
+#
+# This playbook performs these operations:
+# - install vim
+# - configure vim (set /etc/vim/vimrc.local)
+# - set the specified vim version if
+#   - 'update-alternatives' is accessible
+#   - the specified vim version is accessible
+#
+# Variables:
+# - 'vim_ver', defaults to 'vim.basic', is the vim version to set as default editor
+#
+# Requirements: community.general
+# Install the requirements with:
+#   `ansible-galaxy collection install community.general`
+#
+# Linting:
+# ansible-lint --offline --profile production vim.yml
+#
+# Example usage:
+# ansible-playbook --connection=local --inventory 127.0.0.1, --ask-become-pass vim.yml
+
+- name: Install and configure vim
+  hosts: all
+  vars:
+    vim_ver: vim.basic
+  tasks:
+
+    - name: Install vim
+      become: true
+      ansible.builtin.package:
+        name: vim
+        state: present
+
+    - name: Set vim's config
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/vim/vimrc.local
+        content: |
+          set tabstop=4
+          set softtabstop=4
+          set shiftwidth=4
+          set expandtab
+          set fileformat=unix
+          set background=dark
+          syntax on
+          set noerrorbells
+          set novisualbell
+          set encoding=utf8
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+
+    - name: Find if update-alternatives is available
+      ansible.builtin.shell: command -v update-alternatives # noqa: command-instead-of-shell
+      ignore_errors: true
+      changed_when: false
+      register: uares
+
+    - name: Find if specified vim version is available
+      ansible.builtin.shell: command -v "{{ vim_ver }}" # noqa: command-instead-of-shell
+      ignore_errors: true
+      changed_when: false
+      register: vimres
+
+    - name: Set the default editor
+      become: true
+      community.general.alternatives:
+        name: editor
+        path: "{{ vimres.stdout }}"
+        state: selected
+      when:
+        - uares is succeeded
+        - vimres is succeeded
