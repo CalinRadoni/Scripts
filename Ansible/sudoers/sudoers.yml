@@ -1,0 +1,84 @@
+---
+# Add a user to a sudo group and set some commands to be executed without password
+#
+# Version: 1.0.0
+# Copyright (C) 2023 Calin Radoni
+# License MIT (https://opensource.org/license/mit/)
+#
+# Variables:
+# - 'target_user' defaults to empty string
+# - 'sudo_group' defaults to 'sudo', for multiple groups use a comma separated string can be used
+#
+# Requirements: community.general
+# Install the requirements with:
+#   `ansible-galaxy collection install community.general`
+#
+# Linting:
+# ansible-lint --offline --profile production sudoers.yml
+#
+# Example usage:
+# ansible-playbook --connection=local --inventory 127.0.0.1, \
+#   --ask-become-pass sudoers.yml \
+#   --extra-vars '{"target_user":"calinz"}'
+
+- name: Add user as sudoer
+  hosts: all
+  gather_facts: false
+  vars:
+    target_user: ''
+    sudo_group: 'sudo'
+    no_pass_cmd:
+      - /usr/bin/apt update
+      - /usr/bin/apt upgrade
+      - /usr/bin/apt -y upgrade
+      - /usr/bin/apt full-upgrade
+      - /usr/bin/apt -y full-upgrade
+      - /usr/bin/apt autoremove
+      - /usr/bin/snap refresh
+
+  tasks:
+
+    - name: Verify variables
+      ansible.builtin.assert:
+        that:
+          - item is defined
+          - item != None
+          - item is string
+          - item is iterable
+          - item is sequence
+          - item is not mapping
+          - item | length > 0
+        fail_msg: "Variables are not correctly set !"
+        quiet: true
+      loop:
+        - target_user
+        - sudo_group
+
+    - name: Get local users
+      ansible.builtin.getent:
+        database: passwd
+
+    - name: Check if the account exists
+      ansible.builtin.assert:
+        that:
+          - target_user in getent_passwd.keys()
+        fail_msg: "{{ target_user }} does not exists"
+        success_msg: "{{ target_user }} exists"
+        quiet: true
+
+    - name: Add user to group
+      become: true
+      become_user: root
+      ansible.builtin.user:
+        name: "{{ target_user }}"
+        groups: "{{ sudo_group }}"
+        append: true
+
+    - name: Allow some  commands without password
+      become: true
+      community.general.sudoers:
+        name: "{{ target_user }}_nopass"
+        state: present
+        user: "{{ target_user }}"
+        commands: "{{ no_pass_cmd }}"
+        validation: required
