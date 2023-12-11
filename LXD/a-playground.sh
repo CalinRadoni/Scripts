@@ -2,7 +2,7 @@
 #
 # Build / Show / Destroy a LXD Playground for Ansible
 #
-# Version: 0.11.0
+# Version: 0.12.0
 # Copyright (C) 2023 Calin Radoni
 # License MIT (https://opensource.org/license/mit/)
 #
@@ -34,7 +34,8 @@ declare -i vm_cnt=2
 admin_user='calin'
 # public key for SSH access and remote management. Here is an example to create a key pair:
 # ssh-keygen -t ed25519 -f ~/playgroundKey -N "" -C ""
-pub_key='ssh-ed25519 AAAA...'
+pub_key=''
+key_file=''
 
 # container name prefix for system containers
 cs_name='asc'
@@ -69,11 +70,12 @@ exit_with_message() {
 show_usage() {
   cat << EOF
 LXD playground script for Ansible
-Usage: ${0##*/} [-h] [<build | destroy>]
+Usage: ${0##*/} [-h] [-k KEYFILE] [<build | destroy>]
 Options and commands:
-    -h, --help  display this help message and exit
-    build       create the playground
-    destroy     destroy the playground
+    -h, --help         display this help message and exit
+    -k, --key KEYFILE  read the public key from KEYFILE
+    build              create the playground
+    destroy            destroy the playground
 Without a command, the script will show the playground project.
 EOF
 }
@@ -252,6 +254,14 @@ build_playground() {
     exit_with_message 1 "Project $proj already exists !"
   fi
 
+  if [[ -n "${key_file}" ]]; then
+    if [[ -r "${key_file}" ]]; then
+      pub_key=$(<"${key_file}")
+    else
+      exit_with_message 2 "Key file must be readable !"
+    fi
+  fi
+
   if ! echo "${pub_key}" | ssh-keygen -l -f - >/dev/null 2>&1; then
     exit_with_message 2 "Provide a valid public key !"
   fi
@@ -349,6 +359,18 @@ parse_options() {
       -h|--help)
         show_usage
         exit 0
+        ;;
+      -k|--key)
+        if [[ -z "$2" ]]; then
+          exit_with_message 1 "[$1] needs an argument!"
+          exit 1
+        fi
+        if [[ "$2" == '--' ]]; then
+          exit_with_message 1 "[$1] needs an argument!"
+          exit 1
+        fi
+        key_file="$2"
+        shift
         ;;
       build)
         user_cmd='build'
