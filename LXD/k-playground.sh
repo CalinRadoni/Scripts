@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Build / Show / Destroy a LXD Playground
+# Build / Show / Destroy a LXD Playground for Kubernetes
 #
-# Version: 0.6.10
+# Version: 0.7.0
 # Copyright (C) 2023 Calin Radoni
 # License MIT (https://opensource.org/license/mit/)
 #
@@ -24,8 +24,10 @@ declare -i wrk_cnt=0
 
 # the user for SSH access and remote management
 admin_user='calin'
-# public key for SSH access and remote management
-pub_key='ssh-ed25519 AAAA...'
+# public key for SSH access and remote management. Here is an example to create a key pair:
+# ssh-keygen -t ed25519 -f ~/playgroundKey -N "" -C ""
+pub_key=''
+key_file=''
 
 # container name prefixes for servers and clients
 srv_name='server'
@@ -58,12 +60,13 @@ exit_with_message() {
 # Show the usage (help) for this script
 show_usage() {
   cat << EOF
-LXD playground script
-Usage: ${0##*/} [-h] [<build | destroy>]
+LXD playground script for Kubernetes
+Usage: ${0##*/} [-h] [-k KEYFILE] [<build | destroy>]
 Options and commands:
-    -h, --help  display this help message and exit
-    build       create the playground
-    destroy     destroy the playground
+    -h, --help         display this help message and exit
+    -k, --key KEYFILE  read the public key from KEYFILE
+    build              create the playground
+    destroy            destroy the playground
 Without a command, the script will show the playground project.
 EOF
 }
@@ -231,6 +234,14 @@ build_playground() {
     exit_with_message 1 "Project $proj already exists !"
   fi
 
+  if [[ -n "${key_file}" ]]; then
+    if [[ -r "${key_file}" ]]; then
+      pub_key=$(<"${key_file}")
+    else
+      exit_with_message 2 "Key file must be readable !"
+    fi
+  fi
+
   if ! echo "${pub_key}" | ssh-keygen -l -f - >/dev/null 2>&1; then
     exit_with_message 2 "Provide a valid public key !"
   fi
@@ -326,6 +337,18 @@ parse_options() {
       -h|--help)
         show_usage
         exit 0
+        ;;
+      -k|--key)
+        if [[ -z "$2" ]]; then
+          exit_with_message 1 "[$1] needs an argument!"
+          exit 1
+        fi
+        if [[ "$2" == '--' ]]; then
+          exit_with_message 1 "[$1] needs an argument!"
+          exit 1
+        fi
+        key_file="$2"
+        shift
         ;;
       build)
         user_cmd='build'
