@@ -2,7 +2,7 @@
 #
 # Template script that handle options and arguments
 #
-# Version: 1.0.2
+# Version: 1.0.3
 # Copyright (C) 2023 Calin Radoni
 # License MIT (https://opensource.org/license/mit/)
 #
@@ -14,7 +14,7 @@
 # These variables are set by the 'parse_options' function.
 declare -a ARGS=()
 declare -i verbose=0
-declare infile=''
+declare input_file=''
 
 # Print a message then exit the program
 # Arguments:
@@ -26,11 +26,11 @@ exit_with_message() {
   if [[ -n "$2" ]]; then
     printf -- '%s\n' "$2" >&2
   fi
-  if [[ "$exit_code" != +([[:digit:]]) ]]; then
+  if [[ "${exit_code}" != +([[:digit:]]) ]]; then
     printf 'Incorrect exit code!\n' >&2
     exit 1
   fi
-  exit "$exit_code"
+  exit "${exit_code}"
 }
 
 # Show the usage (help) for this script
@@ -70,7 +70,7 @@ parse_options() {
           exit_with_message 1 "[$1] needs an argument!"
           exit 1
         fi
-        infile="$2"
+        input_file="$2"
         shift
         ;;
       --) # explicit end of all options, break out of the loop
@@ -103,12 +103,12 @@ if ((verbose > 0)); then
   printf 'Verbosity level is set to %d\n' "$verbose"
 fi
 
-if [[ -n "$infile" ]]; then
-  printf 'The input file is %s\n' "$infile"
+if [[ -n "${input_file}" ]]; then
+  printf 'The input file is %s\n' "${input_file}"
 
   # test if the file is readable (use -w to test if the file is writable)
-  if [[ ! -r "$infile" ]]; then
-    printf -- '%s is not readable !\n' "$infile" >&2
+  if [[ ! -r "${input_file}" ]]; then
+    printf -- '%s is not readable !\n' "${input_file}" >&2
   fi
 fi
 
