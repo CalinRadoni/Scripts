@@ -17,28 +17,27 @@
 # --- start of user configuration options
 
 proj='kPlay'
-netPrefix='10.70.10'
+net_prefix='10.70.10'
 
-declare -i srvcnt=1
-declare -i wrkcnt=0
+declare -i srv_cnt=1
+declare -i wrk_cnt=0
 
 # the user for SSH access and remote management
-adminuser='calin'
+admin_user='calin'
 # public key for SSH access and remote management
-pubkey='ssh-ed25519 AAAA...'
+pub_key='ssh-ed25519 AAAA...'
 
 # container name prefixes for servers and clients
-srvName='server'
-wrkName='worker'
+srv_name='server'
+wrk_name='worker'
 
 # --- enf of user configuration options
 
-declare usercmd=''
+declare user_cmd=''
 
-declare -A sshCfg
+declare -A ssh_cfg
 
-declare netName="net$proj"
-declare netName="${netName:0:15}"
+declare net_name="${proj:0:15}"
 
 # Print a message then exit the program
 # Arguments:
@@ -49,11 +48,11 @@ exit_with_message() {
   if [[ -n "$2" ]]; then
     printf -- '%s\n' "$2" >&2
   fi
-  if [[ "$exit_code" != +([[:digit:]]) ]]; then
+  if [[ "${exit_code}" != +([[:digit:]]) ]]; then
     printf 'Incorrect exit code!\n' >&2
     exit 1
   fi
-  exit "$exit_code"
+  exit "${exit_code}"
 }
 
 # Show the usage (help) for this script
@@ -76,9 +75,9 @@ create_the_project() {
 }
 
 create_the_network() {
-  lxc network create "$netName" --type=bridge \
-    ipv4.address="$netPrefix.1/24" \
-    ipv4.dhcp.ranges="$netPrefix.64-$netPrefix.127" \
+  lxc network create "${net_name}" --type=bridge \
+    ipv4.address="${net_prefix}.1/24" \
+    ipv4.dhcp.ranges="${net_prefix}.64-${net_prefix}.127" \
     ipv4.nat=true \
     ipv6.address=none
 }
@@ -93,7 +92,7 @@ add_common_devices() {
   lxc profile device add default eth0 nic \
     name=eth0 \
     nictype=bridged \
-    parent="$netName" \
+    parent="${net_name}" \
     --project "$proj"
 
   # kmgs needed for Kubelet from k8s and derivatives
@@ -127,14 +126,14 @@ packages:
   - openssh-server
 ssh_pwauth: false
 users:
-- name: "$adminuser"
+- name: "${admin_user}"
   gecos: System administrator
   groups: adm,netdev,sudo
   sudo: ALL=(ALL) NOPASSWD:ALL
   shell: /bin/bash
   lock_passwd: true
   ssh_authorized_keys:
-  - "$pubkey"
+  - "${pub_key}"
 EOF
 }
 
@@ -142,7 +141,7 @@ EOF
 # Create a `cloud-init.network-config` profile then launch a `ubuntu-minimal` image with that profile attached.
 # Globals:
 #   - proj is the project name
-#   - netPrefix the 24 MSB of the IPv4, example: 192.168.5
+#   - net_prefix the 24 MSB of the IPv4, example: 192.168.5
 # Arguments:
 #   - name of the container
 #   - LSB of IPv4 address
@@ -156,14 +155,14 @@ create_container() {
   (( "$2" > 1 && "$2" < 255 )) || { printf 'Second argument must be between 2 and 254, inclusive !\n'; return 2; }
 
   local cname="$1"
-  local caddr="${netPrefix}.$2"
-  local ipName="ip.$2"
+  local caddr="${net_prefix}.$2"
+  local ip_name="ip.$2"
 
-  sshCfg["$1"]="$caddr"
+  ssh_cfg["$1"]="$caddr"
 
-  lxc profile create "$ipName" --project "$proj"
+  lxc profile create "${ip_name}" --project "$proj"
 
-  cat << EOF | lxc profile set "$ipName" --project "$proj" cloud-init.network-config -
+  cat << EOF | lxc profile set "${ip_name}" --project "$proj" cloud-init.network-config -
 version: 1
 config:
   - type: physical
@@ -173,16 +172,16 @@ config:
         ipv4: true
         address: "$caddr"
         netmask: 255.255.255.0
-        gateway: "${netPrefix}.1"
+        gateway: "${net_prefix}.1"
         control: auto
   - type: nameserver
-    address: "${netPrefix}.1"
+    address: "${net_prefix}.1"
 EOF
 
   lxc launch ubuntu-minimal:22.04 "$cname" \
     --project "$proj" \
     --profile default \
-    --profile "$ipName"
+    --profile "${ip_name}"
 
   return 0
 }
@@ -200,8 +199,8 @@ wait_for_cloud_init() {
 # Remove old keys from `known_hosts` file
 remove_old_host_keys() {
   printf '\nRemove the keys of previous hosts:\n\n'
-  for key in "${!sshCfg[@]}"; do
-    ssh-keygen -f "$HOME/.ssh/known_hosts" -R "${sshCfg[$key]}"
+  for key in "${!ssh_cfg[@]}"; do
+    ssh-keygen -f "$HOME/.ssh/known_hosts" -R "${ssh_cfg[$key]}"
   done
 }
 
@@ -209,14 +208,14 @@ remove_old_host_keys() {
 show_SSH_config() {
   printf '\nYou may set your ~/.ssh/config file like:\n\n'
 
-  for key in "${!sshCfg[@]}"; do
+  for key in "${!ssh_cfg[@]}"; do
     printf 'Host %s\n' "$key"
-    printf '    HostName "%s"\n' "${sshCfg[$key]}"
+    printf '    HostName "%s"\n' "${ssh_cfg[$key]}"
   done
 
-  printf 'Host %s*\n' "$srvName"
+  printf 'Host %s*\n' "${srv_name}"
   printf '    StrictHostKeyChecking no\n'
-  printf 'Host %s*\n' "$wrkName"
+  printf 'Host %s*\n' "${wrk_name}"
   printf '    StrictHostKeyChecking no\n'
   printf '\n'
 }
@@ -224,15 +223,15 @@ show_SSH_config() {
 # Build the playground
 # Globals:
 #   - proj is the project name
-#   - srvName is the prefix for server names
-#   - wrkName is the prefix for worker names
+#   - srv_name is the prefix for server names
+#   - wrk_name is the prefix for worker names
 # Arguments: none
 build_playground() {
   if lxc project list -f csv | cut -d, -f1 | grep -q "$proj"; then
     exit_with_message 1 "Project $proj already exists !"
   fi
 
-  if ! echo "$pubkey" | ssh-keygen -l -f - >/dev/null 2>&1; then
+  if ! echo "${pub_key}" | ssh-keygen -l -f - >/dev/null 2>&1; then
     exit_with_message 2 "Provide a valid public key !"
   fi
 
@@ -241,27 +240,27 @@ build_playground() {
   add_common_devices
   set_common_config
 
-  for (( idx=0; idx<srvcnt; idx++ ))
+  for (( idx=0; idx<srv_cnt; idx++ ))
   do
-    create_container "$srvName$idx" "$(( 10 + idx ))"
+    create_container "${srv_name}$idx" "$(( 10 + idx ))"
   done
 
-  for (( idx=0; idx<wrkcnt; idx++ ))
+  for (( idx=0; idx<wrk_cnt; idx++ ))
   do
-    create_container "$wrkName$idx" "$(( 20 + idx ))"
+    create_container "${wrk_name}$idx" "$(( 20 + idx ))"
   done
 
   remove_old_host_keys
   show_SSH_config
 
   printf 'Wait for cloud-init on all containers:\n'
-  for (( idx=0; idx<srvcnt; idx++ ))
+  for (( idx=0; idx<srv_cnt; idx++ ))
   do
-    wait_for_cloud_init "$srvName$idx"
+    wait_for_cloud_init "${srv_name}$idx"
   done
-  for (( idx=0; idx<wrkcnt; idx++ ))
+  for (( idx=0; idx<wrk_cnt; idx++ ))
   do
-    wait_for_cloud_init "$wrkName$idx"
+    wait_for_cloud_init "${wrk_name}$idx"
   done
 }
 
@@ -285,7 +284,7 @@ show_playground() {
 # Destroy the playground
 # Globals:
 #   - proj is the project name
-#   - netName is the network name
+#   - net_name is the network name
 # Arguments: none
 destroy_playground() {
   declare -a items
@@ -311,7 +310,7 @@ destroy_playground() {
 
   lxc project delete "$proj"
 
-  lxc network delete "$netName"
+  lxc network delete "${net_name}"
 }
 
 # Parse options and their arguments
@@ -329,10 +328,10 @@ parse_options() {
         exit 0
         ;;
       build)
-        usercmd='build'
+        user_cmd='build'
         ;;
       destroy)
-        usercmd='destroy'
+        user_cmd='destroy'
         ;;
       --) # explicit end of all options, break out of the loop
         shift
@@ -361,7 +360,7 @@ if ! command -v lxc >/dev/null 2>&1; then
   exit_with_message 1 'lxc command not found!'
 fi
 
-case "$usercmd" in
+case "${user_cmd}" in
   build)
     build_playground
     ;;
