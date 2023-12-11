@@ -26,29 +26,28 @@
 # --- start of user configuration options
 
 proj='aPlay'
-netPrefix='10.70.11'
+net_prefix='10.70.11'
 
-declare -i vmCnt=2
+declare -i vm_cnt=2
 
 # the user for SSH access and remote management
-adminuser='calin'
+admin_user='calin'
 # public key for SSH access and remote management. Here is an example to create a key pair:
 # ssh-keygen -t ed25519 -f ~/playgroundKey -N "" -C ""
-# pubkey='ssh-ed25519 AAAA...'
-pubkey='ssh-ed25519 AAAA...'
+pub_key='ssh-ed25519 AAAA...'
 
 # container name prefix for system containers
-csName='asc'
+cs_name='asc'
 
-dnsDomain='lxd'
+dns_domain='lxd'
 
 # --- enf of user configuration options
 
-declare usercmd=''
+declare user_cmd=''
 
 declare -A guestAddr
 
-declare netName="${proj:0:15}"
+declare net_name="${proj:0:15}"
 
 # Print a message then exit the program
 # Arguments:
@@ -59,11 +58,11 @@ exit_with_message() {
   if [[ -n "$2" ]]; then
     printf -- '%s\n' "$2" >&2
   fi
-  if [[ "$exit_code" != +([[:digit:]]) ]]; then
+  if [[ "${exit_code}" != +([[:digit:]]) ]]; then
     printf 'Incorrect exit code!\n' >&2
     exit 1
   fi
-  exit "$exit_code"
+  exit "${exit_code}"
 }
 
 # Show the usage (help) for this script
@@ -104,12 +103,12 @@ create_the_project() {
 }
 
 create_the_network() {
-  lxc network create "$netName" --type=bridge \
-    ipv4.address="$netPrefix.1/24" \
-    ipv4.dhcp.ranges="$netPrefix.64-$netPrefix.127" \
+  lxc network create "${net_name}" --type=bridge \
+    ipv4.address="${net_prefix}.1/24" \
+    ipv4.dhcp.ranges="${net_prefix}.64-${net_prefix}.127" \
     ipv4.nat=true \
     ipv6.address=none \
-    dns.domain="$dnsDomain"
+    dns.domain="${dns_domain}"
     # dns.mode='managed'
 }
 
@@ -123,7 +122,7 @@ add_common_devices() {
   lxc profile device add default eth0 nic \
     name=eth0 \
     nictype=bridged \
-    parent="$netName" \
+    parent="${net_name}" \
     --project "$proj"
 }
 
@@ -137,14 +136,14 @@ packages:
   - openssh-server
 ssh_pwauth: false
 users:
-- name: "$adminuser"
+- name: "${admin_user}"
   gecos: System administrator
   groups: adm,netdev,sudo
   sudo: ALL=(ALL) NOPASSWD:ALL
   shell: /bin/bash
   lock_passwd: true
   ssh_authorized_keys:
-  - "$pubkey"
+  - "${pub_key}"
 EOF
 }
 
@@ -152,7 +151,7 @@ EOF
 # Create a `cloud-init.network-config` profile then launch a `ubuntu-minimal` image with that profile attached.
 # Globals:
 #   - proj is the project name
-#   - netPrefix the 24 MSB of the IPv4, example: 192.168.5
+#   - net_prefix the 24 MSB of the IPv4, example: 192.168.5
 # Arguments:
 #   - name of the container
 #   - LSB of IPv4 address
@@ -166,14 +165,14 @@ create_container() {
   (( "$2" > 1 && "$2" < 255 )) || { printf 'Second argument must be between 2 and 254, inclusive !\n'; return 2; }
 
   local cname="$1"
-  local caddr="${netPrefix}.$2"
-  local ipName="ip.$2"
+  local caddr="${net_prefix}.$2"
+  local ip_name="ip.$2"
 
   guestAddr["$1"]="$caddr"
 
-  lxc profile create "$ipName" --project "$proj"
+  lxc profile create "${ip_name}" --project "$proj"
 
-  cat << EOF | lxc profile set "$ipName" --project "$proj" cloud-init.network-config -
+  cat << EOF | lxc profile set "${ip_name}" --project "$proj" cloud-init.network-config -
 version: 1
 config:
   - type: physical
@@ -183,16 +182,16 @@ config:
         ipv4: true
         address: "$caddr"
         netmask: 255.255.255.0
-        gateway: "${netPrefix}.1"
+        gateway: "${net_prefix}.1"
         control: auto
   - type: nameserver
-    address: "${netPrefix}.1"
+    address: "${net_prefix}.1"
 EOF
 
   lxc launch ubuntu-minimal:22.04 "$cname" \
     --project "$proj" \
     --profile default \
-    --profile "$ipName"
+    --profile "${ip_name}"
 
   return 0
 }
@@ -212,10 +211,10 @@ configure_dnsmasq() {
   printf '\nAdd DNS records.\n'
   local str=""
   for key in "${!guestAddr[@]}"; do
-    str="${str}host-record=${key}.${dnsDomain},${guestAddr[$key]}\n"
+    str="${str}host-record=${key}.${dns_domain},${guestAddr[$key]}\n"
   done
 
-  echo -en "$str" | lxc network set "$netName" raw.dnsmasq -
+  echo -en "$str" | lxc network set "${net_name}" raw.dnsmasq -
 }
 
 # Remove old keys from `known_hosts` file
@@ -235,9 +234,9 @@ show_SSH_config() {
     printf '    HostName "%s"\n' "${guestAddr[$key]}"
   done
 
-  printf 'Host %s*\n' "$csName"
+  printf 'Host %s*\n' "${cs_name}"
   printf '    StrictHostKeyChecking no\n'
-  printf '    User %s\n' "$adminuser"
+  printf '    User %s\n' "${admin_user}"
   printf '    IdentityFile _full_path_to_private_key_\n'
   printf '    IdentitiesOnly yes\n'
   printf '\n'
@@ -246,14 +245,14 @@ show_SSH_config() {
 # Build the playground
 # Globals:
 #   - proj is the project name
-#   - csName is the prefix for container's name
+#   - cs_name is the prefix for container's name
 # Arguments: none
 build_playground() {
   if lxc project list -f csv | cut -d, -f1 | grep -q "$proj"; then
     exit_with_message 1 "Project $proj already exists !"
   fi
 
-  if ! echo "$pubkey" | ssh-keygen -l -f - >/dev/null 2>&1; then
+  if ! echo "${pub_key}" | ssh-keygen -l -f - >/dev/null 2>&1; then
     exit_with_message 2 "Provide a valid public key !"
   fi
 
@@ -262,9 +261,9 @@ build_playground() {
   add_common_devices
   set_common_config
 
-  for (( idx=0; idx<vmCnt; idx++ ))
+  for (( idx=0; idx<vm_cnt; idx++ ))
   do
-    create_container "$csName$idx" "$(( 10 + idx ))"
+    create_container "${cs_name}$idx" "$(( 10 + idx ))"
   done
 
   configure_dnsmasq
@@ -273,14 +272,14 @@ build_playground() {
   show_SSH_config
 
   printf 'Wait for cloud-init on all containers:\n'
-  for (( idx=0; idx<vmCnt; idx++ ))
+  for (( idx=0; idx<vm_cnt; idx++ ))
   do
-    wait_for_cloud_init "$csName$idx"
+    wait_for_cloud_init "${cs_name}$idx"
   done
 
   printf '\nTo access the containers by name from host, %sexecute%s:\n%s' "${bold_text}" "${normal_text}" "${green_text}"
-  printf 'sudo resolvectl dns %s %s\n' "${netName}" "${netPrefix}.1"
-  printf 'sudo resolvectl domain %s '"'"'~%s'"'"'\n' "${netName}" "${dnsDomain}"
+  printf 'sudo resolvectl dns %s %s\n' "${net_name}" "${net_prefix}.1"
+  printf 'sudo resolvectl domain %s '"'"'~%s'"'"'\n' "${net_name}" "${dns_domain}"
   printf '%sThe resolved configuration is NOT persistent. For more information see the heading of this script.\n%s\n' "${normal_text}${dim_text}" "${normal_text}"
 }
 
@@ -308,7 +307,7 @@ EOF
 # Destroy the playground
 # Globals:
 #   - proj is the project name
-#   - netName is the network name
+#   - net_name is the network name
 # Arguments: none
 destroy_playground() {
   declare -a items
@@ -334,7 +333,7 @@ destroy_playground() {
 
   lxc project delete "$proj"
 
-  lxc network delete "$netName"
+  lxc network delete "${net_name}"
 }
 
 # Parse options and their arguments
@@ -352,10 +351,10 @@ parse_options() {
         exit 0
         ;;
       build)
-        usercmd='build'
+        user_cmd='build'
         ;;
       destroy)
-        usercmd='destroy'
+        user_cmd='destroy'
         ;;
       --) # explicit end of all options, break out of the loop
         shift
@@ -386,7 +385,7 @@ if ! command -v lxc >/dev/null 2>&1; then
   exit_with_message 1 'lxc command not found!'
 fi
 
-case "$usercmd" in
+case "${user_cmd}" in
   build)
     build_playground
     ;;
