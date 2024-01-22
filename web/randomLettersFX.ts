@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.0.0
+ * Version 1.1.0
  *
  * @remarks
  * This newest version of this script should be in the
@@ -14,7 +14,7 @@
  * <h1 id="titleText"></h1>
  * ```
  * ```ts
- * let fxText = new RandomLetterFX("titleText", "CalinRadoni.github.io");
+ * const fxText = new RandomLetterFX("titleText", "CalinRadoni.github.io");
  * fxText.begin();
  * ```
  *
@@ -25,7 +25,7 @@
  * ```astro
  * <script>
  *   import { RandomLetterFX } from "../scripts/textfx";
- *   let fxText = new RandomLetterFX("titleText", "CalinRadoni.github.io");
+ *   const fxText = new RandomLetterFX("titleText", "CalinRadoni.github.io");
  *   fxText.begin();
  * </script>
 * ```
@@ -42,7 +42,7 @@ class RandomLetterFX {
     private alphabet: string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@#$%^&*()_-+=-?{[]}<>";
     private delay: number = 50;
     private minRandomSteps: number = 2;
-    private maxRandomSteps: number = 22;
+    private maxRandomSteps: number = 0;
 
     private displayLength: number = 0;
     private letters: Array<Letter> = [];
@@ -60,10 +60,7 @@ class RandomLetterFX {
         for (let i = 0; i < text.length; ++i) {
             this.letters.push({
                 char: text.charAt(i),
-                steps: this.minRandomSteps +
-                        (Math.floor(
-                            (this.maxRandomSteps - this.minRandomSteps) * Math.random())
-                        )
+                steps: this.minRandomSteps
             });
         }
     }
@@ -73,9 +70,24 @@ class RandomLetterFX {
      */
     begin() {
         if (this.letters.length > 0) {
-            this.displayLength = 1;
             this.maxRandomSteps = this.letters.length + 1;
+            this.buildSteps();
+            this.displayLength = 1;
             this.run();
+        }
+    }
+
+    /**
+     * Build the steps used for random number of letters
+     *
+     * @remark
+     * Set the {@link RandomLetterFX.maxRandomSteps} before calling this function
+     */
+    private buildSteps() {
+        for (let i = 0; i < this.letters.length; ++i) {
+            this.letters[i].steps = this.minRandomSteps +
+                (Math.floor(
+                    (this.maxRandomSteps - this.minRandomSteps) * Math.random()));
         }
     }
 
