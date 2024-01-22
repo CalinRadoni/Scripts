@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.2.0
+ * Version 1.2.1
  *
  * @remarks
  * This newest version of this script should be in the
@@ -113,16 +113,23 @@ class RandomLetterFX {
      */
     private frame(): boolean {
         let done = true;
+        let ch = '';
         this.output = "";
         for (let ci = 0; ci < this.displayLength; ++ci) {
             if (this.letters[ci].steps > 0) {
                 let randomPos = Math.floor(this.alphabet.length * Math.random());
+                ch = this.alphabet.charAt(randomPos);
+                if (ch === '<') ch = '&lt;';
+                if (ch === '>') ch = '&gt;';
                 this.output += this.alphabet.charAt(randomPos);
                 --this.letters[ci].steps;
                 done = false;
             }
             else {
-                this.output += this.letters[ci].char;
+                ch = this.letters[ci].char;
+                if (ch === '<') ch = '&lt;';
+                if (ch === '>') ch = '&gt;';
+                this.output += ch;
             }
         }
         if(this.displayLength < this.letters.length) {
