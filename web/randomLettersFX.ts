@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.3.0
+ * Version 1.4.0
  *
  * @remarks
  * The newest version of this script should be in the
@@ -130,7 +130,9 @@ class RandomLetterFX {
         for (let ci = 0; ci < this.displayLength; ++ci) {
             if (this.letters[ci].steps > 0) {
                 let randomPos = Math.floor(this.alphabet.length * Math.random());
-                this.output += this.charToEntity(this.alphabet.charAt(randomPos));
+                let ch = this.charToEntity(this.alphabet.charAt(randomPos));
+                let str = `<span style="opacity: 0.7;">${ch}</span>`
+                this.output += str;
                 --this.letters[ci].steps;
                 done = false;
             }
