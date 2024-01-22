@@ -3,11 +3,14 @@
 /**
  * Random letters effect
  *
- * Version 1.1.0
+ * Version 1.2.0
  *
  * @remarks
  * This newest version of this script should be in the
  * {@link https://github.com/CalinRadoni/Scripts} repository.
+ *
+ * @example CodePen
+ * See the {@link https://codepen.io/CalinRadoni/pen/BabdBre} pen.
  *
  * @example Usage
  * ```html
@@ -28,7 +31,7 @@
  *   const fxText = new RandomLetterFX("titleText", "CalinRadoni.github.io");
  *   fxText.begin();
  * </script>
-* ```
+ * ```
  */
 
 export { RandomLetterFX };
