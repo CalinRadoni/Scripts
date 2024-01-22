@@ -3,10 +3,10 @@
 /**
  * Random letters effect
  *
- * Version 1.2.1
+ * Version 1.3.0
  *
  * @remarks
- * This newest version of this script should be in the
+ * The newest version of this script should be in the
  * {@link https://github.com/CalinRadoni/Scripts} repository.
  *
  * @example CodePen
@@ -106,6 +106,19 @@ class RandomLetterFX {
         }, this.delay);
     }
 
+    private charToEntity(ch: string): string {
+        let str: string = "";
+        switch (ch) {
+            case "<": { str = "&lt;"; break;}
+            case ">": { str = "&gt;"; break;}
+            case "&": { str = "&amp;"; break;}
+            case "\"": { str = "&quot;"; break;}
+            case "'": { str = "&apos;"; break;}
+            default: { str = ch; break; }
+        }
+        return str;
+    }
+
     /**
      * Create a new "frame" and set the content of the destination HTML element.
      *
@@ -113,23 +126,16 @@ class RandomLetterFX {
      */
     private frame(): boolean {
         let done = true;
-        let ch = '';
         this.output = "";
         for (let ci = 0; ci < this.displayLength; ++ci) {
             if (this.letters[ci].steps > 0) {
                 let randomPos = Math.floor(this.alphabet.length * Math.random());
-                ch = this.alphabet.charAt(randomPos);
-                if (ch === '<') ch = '&lt;';
-                if (ch === '>') ch = '&gt;';
-                this.output += this.alphabet.charAt(randomPos);
+                this.output += this.charToEntity(this.alphabet.charAt(randomPos));
                 --this.letters[ci].steps;
                 done = false;
             }
             else {
-                ch = this.letters[ci].char;
-                if (ch === '<') ch = '&lt;';
-                if (ch === '>') ch = '&gt;';
-                this.output += ch;
+                this.output += this.charToEntity(this.letters[ci].char);
             }
         }
         if(this.displayLength < this.letters.length) {
