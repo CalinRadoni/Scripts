@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.4.0
+ * Version 1.5.0
  *
  * @remarks
  * The newest version of this script should be in the
@@ -45,6 +45,7 @@ class RandomLetterFX {
     private alphabet: string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@#$%^&*()_-+=-?{[]}<>";
     private delay: number = 50;
     private minRandomSteps: number = 2;
+
     private maxRandomSteps: number = 0;
 
     private displayLength: number = 0;
@@ -81,6 +82,12 @@ class RandomLetterFX {
     }
 
     /**
+     * @returns true if the parameter contains a whitespace char
+     */
+    private containsWhiteSpace(str: string) {
+        return /\s/g.test(str);
+    }
+    /**
      * Build the steps used for random number of letters
      *
      * @remark
@@ -88,9 +95,14 @@ class RandomLetterFX {
      */
     private buildSteps() {
         for (let i = 0; i < this.letters.length; ++i) {
-            this.letters[i].steps = this.minRandomSteps +
-                (Math.floor(
-                    (this.maxRandomSteps - this.minRandomSteps) * Math.random()));
+            if (this.containsWhiteSpace(this.letters[i].char)) {
+                this.letters[i].steps = 0;
+            }
+            else {
+                this.letters[i].steps = this.minRandomSteps +
+                    (Math.floor(
+                        (this.maxRandomSteps - this.minRandomSteps) * Math.random()));
+            }
         }
     }
 
@@ -127,17 +139,22 @@ class RandomLetterFX {
     private frame(): boolean {
         let done = true;
         this.output = "";
-        for (let ci = 0; ci < this.displayLength; ++ci) {
-            if (this.letters[ci].steps > 0) {
-                let randomPos = Math.floor(this.alphabet.length * Math.random());
-                let ch = this.charToEntity(this.alphabet.charAt(randomPos));
-                let str = `<span style="opacity: 0.7;">${ch}</span>`
-                this.output += str;
-                --this.letters[ci].steps;
-                done = false;
+        for (let ci = 0; ci < this.letters.length; ++ci) {
+            if (ci < this.displayLength) {
+                if (this.letters[ci].steps > 0) {
+                    let randomPos = Math.floor(this.alphabet.length * Math.random());
+                    let ch = this.charToEntity(this.alphabet.charAt(randomPos));
+                    this.output += `<span style="opacity:0.7">${ch}</span>`;
+                    --this.letters[ci].steps;
+                    done = false;
+                }
+                else {
+                    this.output += this.charToEntity(this.letters[ci].char);
+                }
             }
             else {
-                this.output += this.charToEntity(this.letters[ci].char);
+                let ch = this.charToEntity(this.letters[ci].char);
+                this.output += `<span style="opacity:0">${ch}</span>`;
             }
         }
         if(this.displayLength < this.letters.length) {
