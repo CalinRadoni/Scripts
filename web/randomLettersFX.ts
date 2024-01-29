@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.5.0
+ * Version 1.6.0
  *
  * @remarks
  * The newest version of this script should be in the
@@ -42,7 +42,7 @@ interface Letter {
 }
 
 class RandomLetterFX {
-    private alphabet: string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~!@#$%^&*()_-+=-?{[]}<>";
+    private alphabet: string = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
     private delay: number = 50;
     private minRandomSteps: number = 2;
 
@@ -118,7 +118,7 @@ class RandomLetterFX {
         }, this.delay);
     }
 
-    private charToEntity(ch: string): string {
+    private charToHTMLName(ch: string): string {
         let str: string = "";
         switch (ch) {
             case "<": { str = "&lt;"; break;}
@@ -126,6 +126,8 @@ class RandomLetterFX {
             case "&": { str = "&amp;"; break;}
             case "\"": { str = "&quot;"; break;}
             case "'": { str = "&apos;"; break;}
+            case "\\": { str = "&bsol;"; break;}
+            case "/": { str = "&sol;"; break;}
             default: { str = ch; break; }
         }
         return str;
@@ -143,17 +145,17 @@ class RandomLetterFX {
             if (ci < this.displayLength) {
                 if (this.letters[ci].steps > 0) {
                     let randomPos = Math.floor(this.alphabet.length * Math.random());
-                    let ch = this.charToEntity(this.alphabet.charAt(randomPos));
+                    let ch = this.charToHTMLName(this.alphabet.charAt(randomPos));
                     this.output += `<span style="opacity:0.7">${ch}</span>`;
                     --this.letters[ci].steps;
                     done = false;
                 }
                 else {
-                    this.output += this.charToEntity(this.letters[ci].char);
+                    this.output += this.charToHTMLName(this.letters[ci].char);
                 }
             }
             else {
-                let ch = this.charToEntity(this.letters[ci].char);
+                let ch = this.charToHTMLName(this.letters[ci].char);
                 this.output += `<span style="opacity:0">${ch}</span>`;
             }
         }
