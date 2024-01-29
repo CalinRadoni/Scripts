@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.7.0
+ * Version 1.7.1
  *
  * @remarks
  * The newest version of this script should be in the
@@ -68,6 +68,7 @@ class RandomLetterFX {
                 steps: this.minRandomSteps
             });
         }
+        this.maxRandomSteps = this.letters.length + 1;
     }
 
     /**
@@ -75,7 +76,6 @@ class RandomLetterFX {
      */
     begin() {
         if (this.letters.length > 0) {
-            this.maxRandomSteps = this.letters.length + 1;
             this.buildSteps();
             this.displayLength = this.displayOneByOne ? 1 : this.letters.length;
             this.run();
@@ -90,9 +90,6 @@ class RandomLetterFX {
     }
     /**
      * Build the steps used for random number of letters
-     *
-     * @remark
-     * Set the {@link RandomLetterFX.maxRandomSteps} before calling this function
      */
     private buildSteps() {
         for (let i = 0; i < this.letters.length; ++i) {
