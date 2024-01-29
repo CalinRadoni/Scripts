@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.6.0
+ * Version 1.7.0
  *
  * @remarks
  * The newest version of this script should be in the
@@ -45,6 +45,7 @@ class RandomLetterFX {
     private alphabet: string = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
     private delay: number = 50;
     private minRandomSteps: number = 2;
+    private displayOneByOne: boolean = true;
 
     private maxRandomSteps: number = 0;
 
@@ -76,7 +77,7 @@ class RandomLetterFX {
         if (this.letters.length > 0) {
             this.maxRandomSteps = this.letters.length + 1;
             this.buildSteps();
-            this.displayLength = 1;
+            this.displayLength = this.displayOneByOne ? 1 : this.letters.length;
             this.run();
         }
     }
