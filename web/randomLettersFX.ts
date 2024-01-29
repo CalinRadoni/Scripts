@@ -3,7 +3,7 @@
 /**
  * Random letters effect
  *
- * Version 1.7.1
+ * Version 1.8.0
  *
  * @remarks
  * The newest version of this script should be in the
@@ -42,12 +42,20 @@ interface Letter {
 }
 
 class RandomLetterFX {
-    private alphabet: string = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    // just the dot
+    private alphabet0: string = ".";
+    // all ASCII printable chars, this may break the words on overflow
+    private alphabet1: string = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    // this should / may keep the formatting and not break original words
+    private alphabet2: string = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~@#^&*_=<>";
+
     private delay: number = 50;
     private minRandomSteps: number = 2;
     private displayOneByOne: boolean = true;
 
     private maxRandomSteps: number = 0;
+
+    private alphabet: string = "";
 
     private displayLength: number = 0;
     private letters: Array<Letter> = [];
@@ -74,7 +82,13 @@ class RandomLetterFX {
     /**
      * Start the effect
      */
-    begin() {
+    begin(alphabetID: number = 0) {
+        switch (alphabetID) {
+            case 1: this.alphabet = this.alphabet1; break;
+            case 2: this.alphabet = this.alphabet2; break;
+            default: this.alphabet = this.alphabet0; break;
+        }
+
         if (this.letters.length > 0) {
             this.buildSteps();
             this.displayLength = this.displayOneByOne ? 1 : this.letters.length;
